@@ -302,7 +302,7 @@ jobs:
             -d parse_mode="Markdown"
 
   notify-random-failure:
-    needs: [random-check, run-ui-tests, run-unit-tests, generate-ui-report, generate-unit-report, create-index, deploy-to-pages]
+    needs: deploy-to-pages
     if: failure()
     runs-on: ubuntu-latest
     steps:
