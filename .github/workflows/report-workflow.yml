@@ -1,0 +1,35 @@
+name: Report Generation Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Generate Report
+        run: |
+          # Create reports directory if it doesn't exist
+          mkdir -p reports
+          # Generate timestamp for the report
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          REPORT_FILE="report_${TIMESTAMP}.txt"
+          # Generate some sample content
+          echo "Report generated at: $(date)" > "reports/${REPORT_FILE}"
+          echo "REPORT_FILE=${REPORT_FILE}" >> $GITHUB_ENV
+
+    outputs:
+      report_file: ${{ env.REPORT_FILE }}
+
+  echo-report:
+    needs: generate-report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Report Filename
+        run: |
+          echo "Generated report filename: ${{ needs.generate-report.outputs.report_file }}"
