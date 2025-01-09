@@ -3,6 +3,12 @@
 # Generate current timestamp
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
+# Parse test results if provided
+TOTAL_TESTS=${1:-"N/A"}
+PASSED_TESTS=${2:-"N/A"}
+FAILED_TESTS=${3:-"N/A"}
+PASS_RATE=${4:-"N/A"}
+
 # Create HTML content
 cat << EOF > reports/report.html
 <!DOCTYPE html>
@@ -10,7 +16,7 @@ cat << EOF > reports/report.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mock Report</title>
+    <title>Test Results Report</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,48 +44,75 @@ cat << EOF > reports/report.html
         th {
             background-color: #f4f4f4;
         }
+        .pass-rate {
+            font-size: 24px;
+            font-weight: bold;
+            color: ${PASS_RATE:+$([ $PASS_RATE -ge 70 ] && echo "#28a745" || echo "#dc3545")};
+        }
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>System Status Report</h1>
+        <h1>Test Results Report</h1>
         <p>Generated on: $TIMESTAMP</p>
     </div>
     
     <div class="content">
-        <h2>System Information</h2>
-        <table>
-            <tr>
-                <th>Metric</th>
-                <th>Value</th>
-            </tr>
-            <tr>
-                <td>Hostname</td>
-                <td>$(hostname)</td>
-            </tr>
-            <tr>
-                <td>Kernel Version</td>
-                <td>$(uname -r)</td>
-            </tr>
-            <tr>
-                <td>CPU Usage</td>
-                <td>$(top -l 1 | grep "CPU usage" | awk '{print $3}')</td>
-            </tr>
-            <tr>
-                <td>Memory Usage</td>
-                <td>$(top -l 1 | grep "PhysMem" | awk '{print $2}')</td>
-            </tr>
-        </table>
+        <div class="test-results">
+            <div class="metric-card">
+                <h3>Total Tests</h3>
+                <div class="metric-value">$TOTAL_TESTS</div>
+            </div>
+            <div class="metric-card">
+                <h3>Passed Tests</h3>
+                <div class="metric-value" style="color: #28a745">$PASSED_TESTS</div>
+            </div>
+            <div class="metric-card">
+                <h3>Failed Tests</h3>
+                <div class="metric-value" style="color: #dc3545">$FAILED_TESTS</div>
+            </div>
+            <div class="metric-card">
+                <h3>Pass Rate</h3>
+                <div class="metric-value pass-rate">$PASS_RATE%</div>
+            </div>
+        </div>
 
-        <h2>Disk Usage</h2>
+        <h2>Test Details</h2>
         <table>
             <tr>
-                <th>Filesystem</th>
-                <th>Size</th>
-                <th>Used</th>
-                <th>Available</th>
+                <th>Test Name</th>
+                <th>Result</th>
             </tr>
-            $(df -h | grep -v "Filesystem" | awk '{print "<tr><td>" $1 "</td><td>" $2 "</td><td>" $3 "</td><td>" $4 "</td></tr>"}')
+EOF
+
+# Add test details if test_results.txt exists
+if [ -f "test_results.txt" ]; then
+    while read -r result; do
+        IFS=':' read -r test_name test_result <<< "$result"
+        COLOR=$([ "$test_result" == "PASS" ] && echo "#28a745" || echo "#dc3545")
+        echo "<tr><td>$test_name</td><td style=\"color: $COLOR\">$test_result</td></tr>" >> reports/report.html
+    done < test_results.txt
+fi
+
+# Close HTML
+cat << EOF >> reports/report.html
         </table>
     </div>
 </body>
