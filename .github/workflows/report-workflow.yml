@@ -50,13 +50,10 @@ jobs:
           echo "results=$TEST_OUTPUT" >> $GITHUB_OUTPUT
         continue-on-error: true
 
-  generate-reports:
-    needs: [run-ui-tests, run-unit-tests]
+  generate-ui-report:
+    needs: run-ui-tests
     if: always()
     runs-on: ubuntu-latest
-    outputs:
-      ui_report: ${{ steps.save-ui.outputs.report_path }}
-      unit_report: ${{ steps.save-unit.outputs.report_path }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -80,8 +77,27 @@ jobs:
             esac
           done
           # Generate UI test report
-          REPORT_PATH=$(./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "ui")
-          echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
+          ./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "ui"
+          # Rename the report file to match expected name
+          mv reports/report-ui.html reports/report-ui-tests.html
+
+      - name: Upload UI Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ui-report
+          path: reports/report-ui-tests.html
+
+  generate-unit-report:
+    needs: run-unit-tests
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Make report script executable
+        run: chmod +x ./report-gen.sh
 
       - name: Generate Unit Test Report
         id: save-unit
@@ -99,10 +115,37 @@ jobs:
             esac
           done
           # Generate unit test report
-          REPORT_PATH=$(./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "unit")
-          echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
+          ./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "unit"
+          # Rename the report file to match expected name
+          mv reports/report-unit.html reports/report-unit-tests.html
 
-      # Create index page in the same job
+      - name: Upload Unit Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-report
+          path: reports/report-unit-tests.html
+
+  create-index:
+    needs: [generate-ui-report, generate-unit-report]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Download UI Report
+        uses: actions/download-artifact@v3
+        with:
+          name: ui-report
+          path: reports
+
+      - name: Download Unit Report
+        uses: actions/download-artifact@v3
+        with:
+          name: unit-report
+          path: reports
+
       - name: Create index page
         run: |
           cat << EOF > reports/index.html
@@ -137,7 +180,7 @@ jobs:
           </html>
           EOF
 
-      - name: Verify Reports
+      - name: Verify Files
         run: |
           echo "Checking reports directory contents:"
           ls -la reports/
@@ -149,13 +192,10 @@ jobs:
               exit 1
             else
               echo " Found $file"
-              echo "File contents preview:"
-              head -n 5 "$file"
-              echo "..."
             fi
           done
 
-      - name: Upload Reports
+      - name: Upload Combined Reports
         if: always()
         uses: actions/upload-artifact@v3
         with:
@@ -163,7 +203,7 @@ jobs:
           path: reports
 
   deploy-to-pages:
-    needs: generate-reports
+    needs: create-index
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -175,29 +215,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
-      - name: Download report artifacts
+      - name: Download Combined Reports
         uses: actions/download-artifact@v3
         with:
           name: test-reports
           path: ./reports
-
-      - name: Verify Downloaded Reports
-        run: |
-          echo "Checking downloaded reports:"
-          ls -la ./reports/
-          
-          # Verify file contents
-          for file in ./reports/report-ui-tests.html ./reports/report-unit-tests.html ./reports/index.html; do
-            if [ ! -f "$file" ]; then
-              echo "Error: $file is missing after download!"
-              exit 1
-            else
-              echo " Found $file"
-              echo "File contents preview:"
-              head -n 5 "$file"
-              echo "..."
-            fi
-          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
