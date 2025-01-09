@@ -54,6 +54,9 @@ jobs:
     needs: [run-ui-tests, run-unit-tests]
     if: always()
     runs-on: ubuntu-latest
+    outputs:
+      ui_report: ${{ steps.save-ui.outputs.report_path }}
+      unit_report: ${{ steps.save-unit.outputs.report_path }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -62,6 +65,7 @@ jobs:
         run: chmod +x ./report-gen.sh
 
       - name: Generate UI Test Report
+        id: save-ui
         run: |
           mkdir -p reports
           # Parse the test results
@@ -76,9 +80,11 @@ jobs:
             esac
           done
           # Generate UI test report
-          ./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "ui"
+          REPORT_PATH=$(./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "ui")
+          echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
 
       - name: Generate Unit Test Report
+        id: save-unit
         run: |
           mkdir -p reports
           # Parse the test results
@@ -93,7 +99,8 @@ jobs:
             esac
           done
           # Generate unit test report
-          ./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "unit"
+          REPORT_PATH=$(./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "unit")
+          echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
 
       - name: Upload Reports
         uses: actions/upload-artifact@v3
@@ -104,3 +111,74 @@ jobs:
             reports/report-unit-tests.html
             ui_test_details.txt
             unit_test_details.txt
+
+  deploy-to-pages:
+    needs: generate-reports
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Download report artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: test-reports
+          path: ./reports
+
+      - name: Create index page
+        run: |
+          cat << EOF > ./reports/index.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Test Reports</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; }
+                  .container { max-width: 800px; margin: 0 auto; }
+                  .link-box {
+                      padding: 20px;
+                      margin: 10px 0;
+                      background: #f4f4f4;
+                      border-radius: 5px;
+                  }
+                  a { color: #0366d6; text-decoration: none; }
+                  a:hover { text-decoration: underline; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>Test Reports</h1>
+                  <div class="link-box">
+                      <h2><a href="report-ui-tests.html">UI Test Report</a></h2>
+                  </div>
+                  <div class="link-box">
+                      <h2><a href="report-unit-tests.html">Unit Test Report</a></h2>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: './reports'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+
+      - name: Echo Report URLs
+        run: |
+          echo "Reports are available at:"
+          echo "Main page: ${{ steps.deployment.outputs.page_url }}"
+          echo "UI Tests: ${{ steps.deployment.outputs.page_url }}report-ui-tests.html"
+          echo "Unit Tests: ${{ steps.deployment.outputs.page_url }}report-unit-tests.html"
