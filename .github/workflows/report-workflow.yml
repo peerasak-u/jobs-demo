@@ -302,18 +302,17 @@ jobs:
             -d parse_mode="Markdown"
 
   notify-random-failure:
-    if: always()
+    if: failure()
     runs-on: ubuntu-latest
     steps:
       - name: Send Telegram Notification
-        if: contains(needs.*.result, 'failure')
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           MESSAGE="❌ *Workflow Failed!*
           
-          A job in the workflow has failed and further execution will be stopped.
+          Job \`${{ github.job }}\` has failed and further execution will be stopped.
           
           Repository: \`${{ github.repository }}\`
           Branch: \`${{ github.ref_name }}\`
