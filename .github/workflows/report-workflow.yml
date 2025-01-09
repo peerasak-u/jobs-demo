@@ -286,16 +286,10 @@ jobs:
           # Create message
           MESSAGE="🔔 *Test Reports Ready*
           
-          📊 *UI Tests Summary:*
-          $UI_SUMMARY
-          
-          📈 *Unit Tests Summary:*
-          $UNIT_SUMMARY
-          
           🌐 *Report URLs:*
-          Main Page: $DEPLOY_URL
-          UI Tests: ${DEPLOY_URL}report-ui-tests.html
-          Unit Tests: ${DEPLOY_URL}report-unit-tests.html
+          Main Page: https://peerasak-u.github.io/jobs-demo/
+          UI Tests: https://peerasak-u.github.io/jobs-demo/report-ui-tests.html
+          Unit Tests: https://peerasak-u.github.io/jobs-demo/report-unit-tests.html
           
           Repository: \`${{ github.repository }}\`
           Branch: \`${{ github.ref_name }}\`"
