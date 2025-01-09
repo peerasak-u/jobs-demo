@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  run-tests:
+  run-ui-tests:
     runs-on: ubuntu-latest
     outputs:
       test_results: ${{ steps.test.outputs.results }}
@@ -14,76 +14,59 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Make test script executable
-        run: chmod +x ./test.sh
+      - name: Make UI test script executable
+        run: chmod +x ./uitest.sh
       
-      - name: Run Tests
+      - name: Run UI Tests
         id: test
         run: |
           # Run tests and capture output
-          TEST_OUTPUT=$(./test.sh)
+          TEST_OUTPUT=$(./uitest.sh)
           echo "results=$TEST_OUTPUT" >> $GITHUB_OUTPUT
 
-  generate-report:
-    needs: run-tests
+  run-unit-tests:
     runs-on: ubuntu-latest
+    outputs:
+      test_results: ${{ steps.test.outputs.results }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Generate Report
+      - name: Make unit test script executable
+        run: chmod +x ./unittest.sh
+      
+      - name: Run Unit Tests
+        id: test
         run: |
-          # Create reports directory if it doesn't exist
-          mkdir -p reports
-          # Parse test results
-          IFS=':' read -r TOTAL PASSED FAILED RATE <<< "${{ needs.run-tests.outputs.test_results }}"
-          # Run the report generation script with test results
-          bash ./report-gen.sh "$TOTAL" "$PASSED" "$FAILED" "$RATE"
-          echo "REPORT_FILE=report.html" >> $GITHUB_ENV
+          # Run tests and capture output
+          TEST_OUTPUT=$(./unittest.sh)
+          echo "results=$TEST_OUTPUT" >> $GITHUB_OUTPUT
 
-      - name: Upload report artifact
+  generate-reports:
+    needs: [run-ui-tests, run-unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create UI Test Report
+        run: |
+          echo "UI Test Results:" > ui_test_report.md
+          echo "${{ needs.run-ui-tests.outputs.test_results }}" >> ui_test_report.md
+
+      - name: Create Unit Test Report
+        run: |
+          echo "Unit Test Results:" > unit_test_report.md
+          echo "${{ needs.run-unit-tests.outputs.test_results }}" >> unit_test_report.md
+
+      - name: Upload UI Test Report
         uses: actions/upload-artifact@v3
         with:
-          name: report
-          path: reports/report.html
+          name: ui-test-report
+          path: ui_test_report.md
 
-    outputs:
-      report_file: ${{ env.REPORT_FILE }}
-
-  echo-report:
-    needs: generate-report
-    runs-on: ubuntu-latest
-    steps:
-      - name: Echo Report Filename
-        run: |
-          echo "Generated report filename: ${{ needs.generate-report.outputs.report_file }}"
-
-  deploy-to-pages:
-    needs: generate-report
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-      - name: Download report artifact
-        uses: actions/download-artifact@v3
+      - name: Upload Unit Test Report
+        uses: actions/upload-artifact@v3
         with:
-          name: report
-          path: ./
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: './'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+          name: unit-test-report
+          path: unit_test_report.md
