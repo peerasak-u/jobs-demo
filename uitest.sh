@@ -38,8 +38,8 @@ for result in "${TEST_RESULTS[@]}"; do
     fi
 done
 
-# Print summary
-echo "UI Test Summary:"
-echo "Total Tests: ${#TEST_RESULTS[@]}"
-echo "Passed: $PASS_COUNT"
-echo "Failed: $FAIL_COUNT"
+TOTAL_COUNT=${#TEST_RESULTS[@]}
+PASS_RATE=$((PASS_COUNT * 100 / TOTAL_COUNT))
+
+# Format output for GitHub Actions
+echo "TOTAL=$TOTAL_COUNT;PASS=$PASS_COUNT;FAIL=$FAIL_COUNT;RATE=$PASS_RATE"
