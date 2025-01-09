@@ -11,7 +11,6 @@ generate_test_result() {
 }
 
 # Generate test results
-echo "Running tests..."
 TEST_RESULTS=(
     $(generate_test_result "Login_Test")
     $(generate_test_result "Database_Connection_Test")
@@ -38,11 +37,14 @@ done
 TOTAL_COUNT=$((PASS_COUNT + FAIL_COUNT))
 PASS_RATE=$((PASS_COUNT * 100 / TOTAL_COUNT))
 
-echo "Test Summary:"
-echo "Total Tests: $TOTAL_COUNT"
-echo "Passed: $PASS_COUNT"
-echo "Failed: $FAIL_COUNT"
-echo "Pass Rate: $PASS_RATE%"
-
-# Make the results available for report generation
+# Only output the required data in the format expected by the workflow
 echo "$TOTAL_COUNT:$PASS_COUNT:$FAIL_COUNT:$PASS_RATE"
+
+# Write summary to a separate file for logging
+{
+    echo "Test Summary:"
+    echo "Total Tests: $TOTAL_COUNT"
+    echo "Passed: $PASS_COUNT"
+    echo "Failed: $FAIL_COUNT"
+    echo "Pass Rate: $PASS_RATE%"
+} > test_summary.txt
