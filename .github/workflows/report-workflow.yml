@@ -302,6 +302,7 @@ jobs:
             -d parse_mode="Markdown"
 
   notify-random-failure:
+    needs: [random-check, run-ui-tests, run-unit-tests, generate-ui-report, generate-unit-report, create-index, deploy-to-pages]
     if: failure()
     runs-on: ubuntu-latest
     steps:
@@ -312,7 +313,7 @@ jobs:
         run: |
           MESSAGE="❌ *Workflow Failed!*
           
-          Job \`${{ github.job }}\` has failed and further execution will be stopped.
+          A job in the workflow has failed and further execution will be stopped.
           
           Repository: \`${{ github.repository }}\`
           Branch: \`${{ github.ref_name }}\`
