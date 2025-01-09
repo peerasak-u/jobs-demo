@@ -16,12 +16,9 @@ jobs:
         run: |
           # Create reports directory if it doesn't exist
           mkdir -p reports
-          # Generate timestamp for the report
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          REPORT_FILE="report_${TIMESTAMP}.txt"
-          # Generate some sample content
-          echo "Report generated at: $(date)" > "reports/${REPORT_FILE}"
-          echo "REPORT_FILE=${REPORT_FILE}" >> $GITHUB_ENV
+          # Run the report generation script
+          bash ./report-gen.sh
+          echo "REPORT_FILE=report.html" >> $GITHUB_ENV
 
     outputs:
       report_file: ${{ env.REPORT_FILE }}
