@@ -3,11 +3,15 @@
 # Function to generate random test result (pass/fail)
 generate_test_result() {
     local test_name=$1
-    if [ $((RANDOM % 2)) -eq 0 ]; then
+    # Use nanoseconds as part of the random seed
+    local random_seed=$(date +%N)
+    if [ $((random_seed % 2)) -eq 0 ]; then
         echo "$test_name:PASS"
     else
         echo "$test_name:FAIL"
     fi
+    # Add a small sleep to ensure different nanosecond values
+    sleep 0.1
 }
 
 # Generate test results
