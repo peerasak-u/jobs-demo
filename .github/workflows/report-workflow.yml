@@ -127,15 +127,33 @@ jobs:
               <div class="container">
                   <h1>Test Reports</h1>
                   <div class="link-box">
-                      <h2><a href="report-ui-tests.html">UI Test Report</a></h2>
+                      <h2><a href="./report-ui-tests.html">UI Test Report</a></h2>
                   </div>
                   <div class="link-box">
-                      <h2><a href="report-unit-tests.html">Unit Test Report</a></h2>
+                      <h2><a href="./report-unit-tests.html">Unit Test Report</a></h2>
                   </div>
               </div>
           </body>
           </html>
           EOF
+
+      - name: Verify Reports
+        run: |
+          echo "Checking reports directory contents:"
+          ls -la reports/
+          
+          # Check if report files exist
+          for file in reports/report-ui-tests.html reports/report-unit-tests.html reports/index.html; do
+            if [ ! -f "$file" ]; then
+              echo "Error: $file is missing!"
+              exit 1
+            else
+              echo " Found $file"
+              echo "File contents preview:"
+              head -n 5 "$file"
+              echo "..."
+            fi
+          done
 
       - name: Upload Reports
         if: always()
@@ -162,6 +180,24 @@ jobs:
         with:
           name: test-reports
           path: ./reports
+
+      - name: Verify Downloaded Reports
+        run: |
+          echo "Checking downloaded reports:"
+          ls -la ./reports/
+          
+          # Verify file contents
+          for file in ./reports/report-ui-tests.html ./reports/report-unit-tests.html ./reports/index.html; do
+            if [ ! -f "$file" ]; then
+              echo "Error: $file is missing after download!"
+              exit 1
+            else
+              echo " Found $file"
+              echo "File contents preview:"
+              head -n 5 "$file"
+              echo "..."
+            fi
+          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
