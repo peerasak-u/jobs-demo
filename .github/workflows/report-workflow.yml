@@ -73,7 +73,6 @@ jobs:
 
   generate-ui-report:
     needs: run-ui-tests
-    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -103,7 +102,6 @@ jobs:
           mv reports/report-ui.html reports/report-ui-tests.html
 
       - name: Upload UI Report
-        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: ui-report
@@ -111,7 +109,6 @@ jobs:
 
   generate-unit-report:
     needs: run-unit-tests
-    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -141,7 +138,6 @@ jobs:
           mv reports/report-unit.html reports/report-unit-tests.html
 
       - name: Upload Unit Report
-        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: unit-report
@@ -149,7 +145,6 @@ jobs:
 
   create-index:
     needs: [generate-ui-report, generate-unit-report]
-    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Create reports directory
@@ -225,7 +220,6 @@ jobs:
 
   deploy-to-pages:
     needs: create-index
-    if: always()
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -264,8 +258,7 @@ jobs:
           } >> $GITHUB_OUTPUT
 
   notify-telegram:
-    needs: [deploy-to-pages, run-ui-tests, run-unit-tests]
-    if: always()
+    needs: [deploy-to-pages]
     runs-on: ubuntu-latest
     steps:
       - name: Send Telegram Notification
