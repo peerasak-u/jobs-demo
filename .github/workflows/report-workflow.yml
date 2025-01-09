@@ -23,21 +23,6 @@ jobs:
             echo "status=passed" >> $GITHUB_OUTPUT
           fi
 
-  notify-random-failure:
-    needs: random-check
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send Telegram notification
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            ❌ Random check failed! Stopping further tests.
-            Repository: ${{ github.repository }}
-            See changes: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
-
   run-ui-tests:
     needs: random-check
     if: needs.random-check.outputs.status == 'passed' || needs.random-check.result == 'success'
@@ -321,6 +306,29 @@ jobs:
           
           Repository: \`${{ github.repository }}\`
           Branch: \`${{ github.ref_name }}\`"
+
+          # Send to Telegram
+          curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+            -d chat_id=${TELEGRAM_CHAT_ID} \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown"
+
+  notify-random-failure:
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="❌ *Workflow Failed!*
+          
+          A job in the workflow has failed and further execution will be stopped.
+          
+          Repository: \`${{ github.repository }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Commit: \`${{ github.sha }}\`"
 
           # Send to Telegram
           curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
