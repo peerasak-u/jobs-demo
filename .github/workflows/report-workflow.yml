@@ -302,7 +302,6 @@ jobs:
             -d parse_mode="Markdown"
 
   notify-random-failure:
-    needs: random-check
     if: failure()
     runs-on: ubuntu-latest
     steps:
