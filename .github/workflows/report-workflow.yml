@@ -20,6 +20,12 @@ jobs:
           bash ./report-gen.sh
           echo "REPORT_FILE=report.html" >> $GITHUB_ENV
 
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: report
+          path: reports/report.html
+
     outputs:
       report_file: ${{ env.REPORT_FILE }}
 
@@ -30,3 +36,35 @@ jobs:
       - name: Echo Report Filename
         run: |
           echo "Generated report filename: ${{ needs.generate-report.outputs.report_file }}"
+
+  deploy-to-pages:
+    needs: generate-report
+    runs-on: ubuntu-latest
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Download report artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: report
+          path: ./
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: './'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
