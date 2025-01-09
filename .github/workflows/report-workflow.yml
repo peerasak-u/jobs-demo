@@ -102,37 +102,10 @@ jobs:
           REPORT_PATH=$(./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "unit")
           echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
 
-      - name: Upload Reports
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-reports
-          path: |
-            reports/report-ui-tests.html
-            reports/report-unit-tests.html
-            ui_test_details.txt
-            unit_test_details.txt
-
-  deploy-to-pages:
-    needs: generate-reports
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-      - name: Download report artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: test-reports
-          path: ./reports
-
+      # Create index page in the same job
       - name: Create index page
         run: |
-          cat << EOF > ./reports/index.html
+          cat << EOF > reports/index.html
           <!DOCTYPE html>
           <html>
           <head>
@@ -163,6 +136,32 @@ jobs:
           </body>
           </html>
           EOF
+
+      - name: Upload Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: reports
+
+  deploy-to-pages:
+    needs: generate-reports
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Download report artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: test-reports
+          path: ./reports
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
