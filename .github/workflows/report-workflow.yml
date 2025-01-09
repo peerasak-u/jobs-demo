@@ -14,14 +14,15 @@ jobs:
       - name: Generate random status
         id: random
         run: |
-          # Randomly generate 0 or 1
-          RANDOM_NUM=$(( $RANDOM % 2 ))
-          if [ $RANDOM_NUM -eq 0 ]; then
-            echo "status=failed" >> $GITHUB_OUTPUT
-            exit 1
-          else
-            echo "status=passed" >> $GITHUB_OUTPUT
-          fi
+          exit 1
+          # # Randomly generate 0 or 1
+          # RANDOM_NUM=$(( $RANDOM % 2 ))
+          # if [ $RANDOM_NUM -eq 0 ]; then
+          #   echo "status=failed" >> $GITHUB_OUTPUT
+          #   exit 1
+          # else
+          #   echo "status=passed" >> $GITHUB_OUTPUT
+          # fi
 
   run-ui-tests:
     needs: random-check
@@ -301,11 +302,11 @@ jobs:
             -d parse_mode="Markdown"
 
   notify-random-failure:
-    needs: random-check
-    if: failure()
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Send Telegram Notification
+        if: contains(needs.*.result, 'failure')
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
