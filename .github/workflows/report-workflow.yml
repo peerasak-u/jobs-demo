@@ -6,7 +6,41 @@ on:
       - main
 
 jobs:
+  random-check:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.random.outputs.status }}
+    steps:
+      - name: Generate random status
+        id: random
+        run: |
+          # Randomly generate 0 or 1
+          RANDOM_NUM=$(( $RANDOM % 2 ))
+          if [ $RANDOM_NUM -eq 0 ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi
+
+  notify-random-failure:
+    needs: random-check
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ❌ Random check failed! Stopping further tests.
+            Repository: ${{ github.repository }}
+            See changes: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+
   run-ui-tests:
+    needs: random-check
+    if: needs.random-check.outputs.status == 'passed' || needs.random-check.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       test_results: ${{ steps.test.outputs.results }}
@@ -29,6 +63,8 @@ jobs:
         continue-on-error: true
 
   run-unit-tests:
+    needs: random-check
+    if: needs.random-check.outputs.status == 'passed' || needs.random-check.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       test_results: ${{ steps.test.outputs.results }}
