@@ -1,2 +1,5 @@
-# ignore /reports folder
-reports/
+# Ignore reports directory and its contents
+/reports/
+
+# MacOS
+.DS_Store
