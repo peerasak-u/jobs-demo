@@ -8,15 +8,22 @@ TOTAL_TESTS=${1:-"N/A"}
 PASSED_TESTS=${2:-"N/A"}
 FAILED_TESTS=${3:-"N/A"}
 PASS_RATE=${4:-"N/A"}
+REPORT_TYPE=${5:-"tests"} # New parameter for report type
+
+# Set the report filename based on type
+REPORT_FILE="report-${REPORT_TYPE}.html"
+
+# Create reports directory if it doesn't exist
+mkdir -p reports
 
 # Create HTML content
-cat << EOF > reports/report.html
+cat << EOF > reports/$REPORT_FILE
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Results Report</title>
+    <title>${REPORT_TYPE^} Test Results Report</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,7 +77,7 @@ cat << EOF > reports/report.html
 </head>
 <body>
     <div class="header">
-        <h1>Test Results Report</h1>
+        <h1>${REPORT_TYPE^} Test Results Report</h1>
         <p>Generated on: $TIMESTAMP</p>
     </div>
     
@@ -102,21 +109,23 @@ cat << EOF > reports/report.html
             </tr>
 EOF
 
-# Add test details if test_results.txt exists
-if [ -f "test_results.txt" ]; then
+# Add test details based on test type
+RESULTS_FILE="${REPORT_TYPE}_test_results.txt"
+if [ -f "$RESULTS_FILE" ]; then
     while read -r result; do
         IFS=':' read -r test_name test_result <<< "$result"
         COLOR=$([ "$test_result" == "PASS" ] && echo "#28a745" || echo "#dc3545")
-        echo "<tr><td>$test_name</td><td style=\"color: $COLOR\">$test_result</td></tr>" >> reports/report.html
-    done < test_results.txt
+        echo "<tr><td>$test_name</td><td style=\"color: $COLOR\">$test_result</td></tr>" >> reports/$REPORT_FILE
+    done < "$RESULTS_FILE"
 fi
 
-# Close HTML
-cat << EOF >> reports/report.html
+# Close HTML tags
+cat << EOF >> reports/$REPORT_FILE
         </table>
     </div>
 </body>
 </html>
 EOF
 
-echo "Report has been generated as report.html"
+# Output the generated report filename
+echo $REPORT_FILE

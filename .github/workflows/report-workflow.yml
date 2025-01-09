@@ -55,36 +55,52 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Create UI Test Report
-        run: |
-          echo "# UI Test Results" > ui_test_report.md
-          echo "## Summary" >> ui_test_report.md
-          IFS=';' read -r -a RESULTS <<< "${{ needs.run-ui-tests.outputs.test_results }}"
-          for result in "${RESULTS[@]}"; do
-            echo "* ${result}" >> ui_test_report.md
-          done
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Create Unit Test Report
-        run: |
-          echo "# Unit Test Results" > unit_test_report.md
-          echo "## Summary" >> unit_test_report.md
-          IFS=';' read -r -a RESULTS <<< "${{ needs.run-unit-tests.outputs.test_results }}"
-          for result in "${RESULTS[@]}"; do
-            echo "* ${result}" >> unit_test_report.md
-          done
+      - name: Make report script executable
+        run: chmod +x ./report-gen.sh
 
-      - name: Upload UI Test Report
+      - name: Generate UI Test Report
+        run: |
+          mkdir -p reports
+          # Parse the test results
+          IFS=';' read -r -a UI_RESULTS <<< "${{ needs.run-ui-tests.outputs.test_results }}"
+          for result in "${UI_RESULTS[@]}"; do
+            IFS='=' read -r key value <<< "$result"
+            case "$key" in
+              "TOTAL") TOTAL="$value" ;;
+              "PASS") PASS="$value" ;;
+              "FAIL") FAIL="$value" ;;
+              "RATE") RATE="$value" ;;
+            esac
+          done
+          # Generate UI test report
+          ./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "ui"
+
+      - name: Generate Unit Test Report
+        run: |
+          mkdir -p reports
+          # Parse the test results
+          IFS=';' read -r -a UNIT_RESULTS <<< "${{ needs.run-unit-tests.outputs.test_results }}"
+          for result in "${UNIT_RESULTS[@]}"; do
+            IFS='=' read -r key value <<< "$result"
+            case "$key" in
+              "TOTAL") TOTAL="$value" ;;
+              "PASS") PASS="$value" ;;
+              "FAIL") FAIL="$value" ;;
+              "RATE") RATE="$value" ;;
+            esac
+          done
+          # Generate unit test report
+          ./report-gen.sh "$TOTAL" "$PASS" "$FAIL" "$RATE" "unit"
+
+      - name: Upload Reports
         uses: actions/upload-artifact@v3
         with:
-          name: ui-test-report
+          name: test-reports
           path: |
-            ui_test_report.md
+            reports/report-ui-tests.html
+            reports/report-unit-tests.html
             ui_test_details.txt
-
-      - name: Upload Unit Test Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: unit-test-report
-          path: |
-            unit_test_report.md
             unit_test_details.txt
